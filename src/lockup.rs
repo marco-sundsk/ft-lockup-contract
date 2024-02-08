@@ -8,7 +8,7 @@ pub type LockupIndex = u32;
 #[cfg_attr(not(target_arch = "wasm32"), derive(Debug, PartialEq))]
 pub struct LockupClaim {
     pub index: LockupIndex,
-    pub claim_amount: WrappedBalance,
+    pub claim_amount: U128,
     pub is_final: bool,
 }
 
@@ -16,7 +16,7 @@ pub struct LockupClaim {
 #[serde(crate = "near_sdk::serde")]
 #[cfg_attr(not(target_arch = "wasm32"), derive(Debug, PartialEq, Clone))]
 pub struct Lockup {
-    pub account_id: ValidAccountId,
+    pub account_id: AccountId,
     pub schedule: Schedule,
 
     #[serde(default)]
@@ -92,14 +92,14 @@ impl Lockup {
 #[serde(crate = "near_sdk::serde")]
 #[cfg_attr(not(target_arch = "wasm32"), derive(Debug, PartialEq, Clone))]
 pub struct LockupCreate {
-    pub account_id: ValidAccountId,
+    pub account_id: AccountId,
     pub schedule: Schedule,
     pub vesting_schedule: Option<VestingConditions>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 impl LockupCreate {
-    pub fn new_unlocked(account_id: ValidAccountId, total_balance: Balance) -> Self {
+    pub fn new_unlocked(account_id: AccountId, total_balance: Balance) -> Self {
         Self {
             account_id,
             schedule: Schedule::new_unlocked(total_balance),
@@ -109,7 +109,7 @@ impl LockupCreate {
 }
 
 impl LockupCreate {
-    pub fn into_lockup(&self, payer_id: &ValidAccountId) -> Lockup {
+    pub fn into_lockup(&self, payer_id: &AccountId) -> Lockup {
         let vesting_schedule = self.vesting_schedule.clone();
         Lockup {
             account_id: self.account_id.clone(),

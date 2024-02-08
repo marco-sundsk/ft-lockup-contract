@@ -3,7 +3,7 @@
 pub use std::iter;
 
 use near_contract_standards::fungible_token::metadata::{FungibleTokenMetadata, FT_METADATA_SPEC};
-pub use near_sdk::json_types::{Base58CryptoHash, ValidAccountId, WrappedBalance};
+pub use near_sdk::json_types::{Base58CryptoHash, AccountId, U128};
 use near_sdk::serde_json::json;
 pub use near_sdk::{env, serde_json, AccountId, Balance, Gas, Timestamp};
 use near_sdk_sim::runtime::GenesisConfig;
@@ -175,7 +175,7 @@ pub fn to_nano(timestamp: u32) -> Timestamp {
 }
 
 impl Env {
-    pub fn init(deposit_whitelist: Option<Vec<ValidAccountId>>) -> Self {
+    pub fn init(deposit_whitelist: Option<Vec<AccountId>>) -> Self {
         let mut genesis_config = GenesisConfig::default();
         genesis_config.block_prod_time = 0;
         let root = init_simulator(Some(genesis_config));
@@ -189,7 +189,7 @@ impl Env {
             "new",
             &json!({
                 "owner_id": owner.valid_account_id(),
-                "total_supply": WrappedBalance::from(TOKEN_TOTAL_SUPPLY),
+                "total_supply": U128::from(TOKEN_TOTAL_SUPPLY),
                 "metadata": FungibleTokenMetadata {
                     spec: FT_METADATA_SPEC.to_string(),
                     name: "Token".to_string(),
@@ -243,7 +243,7 @@ impl Env {
             "ft_transfer",
             &json!({
                 "receiver_id": receiver.valid_account_id(),
-                "amount": WrappedBalance::from(amount),
+                "amount": U128::from(amount),
             })
             .to_string()
             .into_bytes(),
@@ -263,7 +263,7 @@ impl Env {
             "ft_transfer_call",
             &json!({
                 "receiver_id": self.contract.user_account.valid_account_id(),
-                "amount": WrappedBalance::from(amount),
+                "amount": U128::from(amount),
                 "msg": msg,
             })
             .to_string()
@@ -315,7 +315,7 @@ impl Env {
     pub fn claim_specific_lockups(
         &self,
         user: &UserAccount,
-        amounts: &Vec<(LockupIndex, Option<WrappedBalance>)>,
+        amounts: &Vec<(LockupIndex, Option<U128>)>,
     ) -> ExecutionResult {
         user.function_call(
             self.contract.contract.claim(Some(amounts.clone())),
@@ -365,7 +365,7 @@ impl Env {
     pub fn remove_from_deposit_whitelist_single(
         &self,
         user: &UserAccount,
-        account_id: &ValidAccountId,
+        account_id: &AccountId,
     ) -> ExecutionResult {
         user.call(
             self.contract.account_id(),
@@ -379,7 +379,7 @@ impl Env {
     pub fn add_to_deposit_whitelist_single(
         &self,
         user: &UserAccount,
-        account_id: &ValidAccountId,
+        account_id: &AccountId,
     ) -> ExecutionResult {
         user.call(
             self.contract.account_id(),
@@ -393,7 +393,7 @@ impl Env {
     pub fn remove_from_deposit_whitelist(
         &self,
         user: &UserAccount,
-        account_id: &ValidAccountId,
+        account_id: &AccountId,
     ) -> ExecutionResult {
         user.call(
             self.contract.account_id(),
@@ -409,7 +409,7 @@ impl Env {
     pub fn add_to_deposit_whitelist(
         &self,
         user: &UserAccount,
-        account_id: &ValidAccountId,
+        account_id: &AccountId,
     ) -> ExecutionResult {
         user.call(
             self.contract.account_id(),
@@ -425,7 +425,7 @@ impl Env {
     pub fn remove_from_draft_operators_whitelist(
         &self,
         user: &UserAccount,
-        account_id: &ValidAccountId,
+        account_id: &AccountId,
     ) -> ExecutionResult {
         user.function_call(
             self.contract
@@ -439,7 +439,7 @@ impl Env {
     pub fn add_to_draft_operators_whitelist(
         &self,
         user: &UserAccount,
-        account_id: &ValidAccountId,
+        account_id: &AccountId,
     ) -> ExecutionResult {
         user.function_call(
             self.contract
@@ -553,7 +553,7 @@ impl Env {
     pub fn validate_schedule(
         &self,
         schedule: &Schedule,
-        total_balance: WrappedBalance,
+        total_balance: U128,
         termination_schedule: Option<&Schedule>,
     ) -> ViewResult {
         self.near
@@ -564,7 +564,7 @@ impl Env {
             ))
     }
 
-    pub fn get_token_account_id(&self) -> ValidAccountId {
+    pub fn get_token_account_id(&self) -> AccountId {
         self.near
             .view_method_call(self.contract.contract.get_token_account_id())
             .unwrap_json()
@@ -645,7 +645,7 @@ impl Env {
     }
 
     pub fn ft_balance_of(&self, user: &UserAccount) -> Balance {
-        let balance: WrappedBalance = self
+        let balance: U128 = self
             .near
             .view(
                 self.token.account_id.clone(),

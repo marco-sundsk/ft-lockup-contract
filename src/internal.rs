@@ -21,10 +21,10 @@ impl Contract {
         self.lockups.push(lockup);
         let mut indices = self
             .account_lockups
-            .get(lockup.account_id.as_ref())
+            .get(&lockup.account_id)
             .unwrap_or_default();
         indices.insert(index);
-        self.internal_save_account_lockups(lockup.account_id.as_ref(), indices);
+        self.internal_save_account_lockups(&lockup.account_id, indices);
         index
     }
 

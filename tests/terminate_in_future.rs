@@ -23,7 +23,7 @@ fn test_lockup_terminate_with_timestamp_in_future() {
         vesting_schedule: Some(VestingConditions::Schedule(vesting_schedule)),
     };
 
-    let balance: WrappedBalance = e
+    let balance: U128 = e
         .add_lockup(&users.eve, amount, &lockup_create)
         .unwrap_json();
     assert_eq!(balance.0, amount);
@@ -44,7 +44,7 @@ fn test_lockup_terminate_with_timestamp_in_future() {
     assert!(format!("{:?}", res.status()).contains("expected termination_timestamp >= now"));
 
     // TERMINATE with future timestamp
-    let res: WrappedBalance = e
+    let res: U128 = e
         .terminate_with_timestamp(
             &e.owner,
             lockup_index,
@@ -70,7 +70,7 @@ fn test_lockup_terminate_with_timestamp_in_future() {
     // end of remaining schedule
     e.set_time_sec(GENESIS_TIMESTAMP_SEC + ONE_YEAR_SEC * 3 + ONE_YEAR_SEC / 3);
     ft_storage_deposit(&users.eve, TOKEN_ID, &users.alice.account_id);
-    let res: WrappedBalance = e.claim(&users.alice).unwrap_json();
+    let res: U128 = e.claim(&users.alice).unwrap_json();
     assert_eq!(res.0, amount / 2);
     let balance = e.ft_balance_of(&users.alice);
     assert_eq!(balance, amount / 2);
@@ -120,7 +120,7 @@ fn test_lockup_terminate_with_timestamp_in_future_no_storage_deposit() {
 
     // create lockup succeeds
     let res = e.add_lockup(&users.eve, amount, &lockup_create);
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, amount);
 
     let lockups = e.get_account_lockups(&users.alice);
@@ -133,7 +133,7 @@ fn test_lockup_terminate_with_timestamp_in_future_no_storage_deposit() {
     let termination_call_timestamp = GENESIS_TIMESTAMP_SEC + ONE_YEAR_SEC * 1 / 3;
     let termination_effective_timestamp = GENESIS_TIMESTAMP_SEC + ONE_YEAR_SEC * 2 / 3;
     e.set_time_sec(termination_call_timestamp);
-    let res: WrappedBalance = e
+    let res: U128 = e
         .terminate_with_timestamp(&users.eve, lockup_index, termination_effective_timestamp)
         .unwrap_json();
     assert_eq!(res.0, 0);

@@ -59,7 +59,7 @@ fn test_deposit_whitelist_get() {
         ]),
         vesting_schedule: None,
     };
-    let balance: WrappedBalance = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
+    let balance: U128 = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
     assert_eq!(balance.0, amount);
     let lockups = e.get_account_lockups(&users.alice);
     assert_eq!(lockups.len(), 1);
@@ -93,7 +93,7 @@ fn test_deposit_whitelist_get() {
 
     // user not in whitelist cannot create lockups
     let res = e.add_lockup(&e.owner, amount, &lockup_create);
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, 0);
     assert!(res.logs()[0].contains("Refund"));
     let lockups = e.get_account_lockups(&users.alice);

@@ -15,7 +15,7 @@ pub enum VestingConditions {
 pub struct TerminationConfig {
     /// The account ID who paid for the lockup creation
     /// and will receive unvested balance upon termination
-    pub beneficiary_id: ValidAccountId,
+    pub beneficiary_id: AccountId,
     /// An optional vesting schedule
     pub vesting_schedule: VestingConditions,
 }

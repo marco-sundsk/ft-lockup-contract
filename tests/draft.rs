@@ -193,18 +193,18 @@ fn test_fund_draft_group() {
     // fund with not authorized account
     let res = e.fund_draft_group(&users.alice, amount * 2, 0);
     assert!(res.logs()[0].contains("Refund"));
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, 0);
 
     // fund with wrong amount
     let res = e.fund_draft_group(&e.owner, amount, 0);
     assert!(res.logs()[0].contains("Refund"));
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, 0);
 
     // fund draft group by owner should succeed
     let res = e.fund_draft_group(&e.owner, amount * 2, 0);
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, amount * 2);
 
     let res = e.get_draft_group(0).unwrap();
@@ -213,7 +213,7 @@ fn test_fund_draft_group() {
     // fund again, should fail
     let res = e.fund_draft_group(&e.owner, amount * 2, 0);
     assert!(res.logs()[0].contains("Refund"));
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, 0);
 
     // add draft after funding
@@ -243,7 +243,7 @@ fn test_fund_draft_group_with_convert() {
 
     // fund draft group
     let res = e.fund_draft_group_with_convert(&e.owner, amount, 0);
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, amount);
 
     let res = e.get_draft_group(0);
@@ -284,7 +284,7 @@ fn test_fund_draft_group_with_convert_too_big_group() {
 
     // fund draft group
     let res = e.fund_draft_group_with_convert(&e.owner, amount * (n_drafts as Balance), 0);
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     // draft group has been converted since ft_transfer_call succeeds
     assert_eq!(balance.0, amount * (n_drafts as Balance));
 
@@ -343,7 +343,7 @@ fn test_convert_draft() {
 
     // fund draft group
     let res = e.fund_draft_group(&e.owner, amount * 2, 0);
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, amount * 2);
 
     // convert by anonymous
@@ -434,10 +434,10 @@ fn test_convert_drafts_batch() {
 
     // fund draft group
     let res = e.fund_draft_group(&e.owner, amount * 2, group_0);
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, amount * 2);
     let res = e.fund_draft_group(&e.owner, amount * 2, group_1);
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, amount * 2);
 
     // convert by anonymous
@@ -448,10 +448,10 @@ fn test_convert_drafts_batch() {
     assert_eq!(res, vec![0, 1, 2, 3]);
 
     let lockups = e.get_lockups_paged(None, None);
-    let mut account_ids: Vec<ValidAccountId> =
+    let mut account_ids: Vec<AccountId> =
         lockups.into_iter().map(|x| x.1.account_id).collect();
     account_ids.sort();
-    let expected: Vec<ValidAccountId> = vec![users.alice, users.bob, users.charlie, users.dude]
+    let expected: Vec<AccountId> = vec![users.alice, users.bob, users.charlie, users.dude]
         .iter()
         .map(|x| x.valid_account_id())
         .collect();
@@ -478,7 +478,7 @@ fn test_view_drafts() {
 
     // fund draft group
     let res = e.fund_draft_group(&e.owner, amount * 3, 0);
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, amount * 3);
     let res = e.convert_draft(&users.bob, 0);
     assert!(res.is_ok());
@@ -509,13 +509,13 @@ fn test_create_via_draft_batches_and_claim() {
 
     // fund draft group
     let res = e.fund_draft_group(&e.owner, amount, 0);
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, amount);
     let res = e.convert_drafts(&users.bob, &vec![0]);
     assert!(res.is_ok());
 
     ft_storage_deposit(&users.alice, TOKEN_ID, &users.alice.account_id);
-    let res: WrappedBalance = e.claim(&users.alice).unwrap_json();
+    let res: U128 = e.claim(&users.alice).unwrap_json();
     assert_eq!(res.0, amount);
     let balance = e.ft_balance_of(&users.alice);
     assert_eq!(balance, amount);
@@ -566,7 +566,7 @@ fn test_draft_payer_update() {
 
     // fund draft group
     let res = e.fund_draft_group(&users.dude, amount, 0);
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, amount);
     let res = e.convert_draft(&users.bob, 0);
     assert!(res.is_ok());
@@ -586,7 +586,7 @@ fn test_draft_payer_update() {
     );
 
     // terminating as owner, unvested balance returns to the payer
-    let res: WrappedBalance = e.terminate(&e.owner, lockup_index).unwrap_json();
+    let res: U128 = e.terminate(&e.owner, lockup_index).unwrap_json();
     assert_eq!(res.0, amount);
     let balance = e.ft_balance_of(&users.alice);
     assert_eq!(balance, 0);
@@ -678,7 +678,7 @@ fn test_delete_draft_group_before_fund() {
     // admin cannot fund the group
     let res = e.fund_draft_group(&e.owner, amount, draft_group_id);
     assert!(res.logs()[0].contains("Refund"));
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, 0);
 
     // cannot convert draft after discard
@@ -737,7 +737,7 @@ fn test_delete_draft_group_after_fund() {
 
     // fund the group
     let res = e.fund_draft_group(&e.owner, amount, draft_group_id);
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, amount);
 
     // admin cannot discard non-empty draft group after it's converted
@@ -776,12 +776,12 @@ fn test_draft_operator_lockup_permissions() {
     // draft_operator cannot create drafts
     let res = e.add_lockup(&e.draft_operator, amount, &lockup_create);
     assert!(res.logs()[0].contains("Refund"));
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, 0);
 
     // create draft by owner
     let res = e.add_lockup(&e.owner, amount, &lockup_create);
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, amount);
 
     let lockups = e.get_account_lockups(&users.alice);
@@ -806,7 +806,7 @@ fn test_draft_operator_lockup_permissions() {
     // fund draft group by draft operator should fail
     let res = e.fund_draft_group(&e.draft_operator, amount, draft_group_id);
     assert!(res.logs()[0].contains("Refund"));
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, 0);
 }
 
@@ -887,7 +887,7 @@ fn test_draft_operator_permission_updates() {
     let lockup_create = LockupCreate::new_unlocked(users.alice.valid_account_id(), amount);
     let res = e.add_lockup(&e.owner, amount, &lockup_create);
     assert!(res.is_ok());
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, amount);
 
     // adding new draft operator, it's not allowed to remove every deposit_whitelist
@@ -906,7 +906,7 @@ fn test_draft_operator_permission_updates() {
     // deposit role must be removed
     let res = e.add_lockup(&e.owner, amount, &lockup_create);
     assert!(res.is_ok());
-    let balance: WrappedBalance = res.unwrap_json();
+    let balance: U128 = res.unwrap_json();
     assert_eq!(balance.0, 0);
 
     // draft operator role is retained

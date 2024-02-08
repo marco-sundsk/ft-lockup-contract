@@ -20,7 +20,7 @@ pub enum FtMessage {
 impl FungibleTokenReceiver for Contract {
     fn ft_on_transfer(
         &mut self,
-        sender_id: ValidAccountId,
+        sender_id: AccountId,
         amount: U128,
         msg: String,
     ) -> PromiseOrValue<U128> {
@@ -30,7 +30,7 @@ impl FungibleTokenReceiver for Contract {
             "Invalid token ID"
         );
         let amount = amount.into();
-        self.assert_deposit_whitelist(sender_id.as_ref());
+        self.assert_deposit_whitelist(&sender_id);
 
         let ft_message: FtMessage = serde_json::from_str(&msg).unwrap();
         match ft_message {
@@ -40,7 +40,7 @@ impl FungibleTokenReceiver for Contract {
                 let index = self.internal_add_lockup(&lockup);
                 log!(
                     "Created new lockup for {} with index {}",
-                    lockup.account_id.as_ref(),
+                    lockup.account_id,
                     index
                 );
                 let event: FtLockupCreateLockup = (index, lockup, None).into();
@@ -63,14 +63,13 @@ impl FungibleTokenReceiver for Contract {
                 if funding.try_convert.unwrap_or(false) {
                     // Using remaining gas to try convert drafts, not waiting for results
                     if let Some(remaining_gas) =
-                        env::prepaid_gas().checked_sub(env::used_gas() + GAS_EXT_CALL_COST)
+                        env::prepaid_gas().0.checked_sub(env::used_gas().0 + GAS_EXT_CALL_COST.0)
                     {
-                        if remaining_gas > GAS_MIN_FOR_CONVERT {
-                            ext_self::convert_drafts(
+                        if remaining_gas > GAS_MIN_FOR_CONVERT.0 {
+                            Self::ext(env::current_account_id())
+                                .with_static_gas(remaining_gas.into())
+                                .convert_drafts(
                                 draft_group.draft_indices.into_iter().collect(),
-                                &env::current_account_id(),
-                                NO_DEPOSIT,
-                                remaining_gas,
                             );
                         }
                     }

@@ -5,13 +5,13 @@ trait SelfCallbacks {
         &mut self,
         account_id: AccountId,
         lockup_claims: Vec<LockupClaim>,
-    ) -> WrappedBalance;
+    ) -> U128;
 
     fn after_lockup_termination(
         &mut self,
         account_id: AccountId,
-        amount: WrappedBalance,
-    ) -> WrappedBalance;
+        amount: U128,
+    ) -> U128;
 }
 
 #[near_bindgen]
@@ -21,7 +21,7 @@ impl SelfCallbacks for Contract {
         &mut self,
         account_id: AccountId,
         lockup_claims: Vec<LockupClaim>,
-    ) -> WrappedBalance {
+    ) -> U128 {
         let promise_success = is_promise_success();
         let mut total_balance = 0;
         if promise_success {
@@ -80,8 +80,8 @@ impl SelfCallbacks for Contract {
     fn after_lockup_termination(
         &mut self,
         account_id: AccountId,
-        amount: WrappedBalance,
-    ) -> WrappedBalance {
+        amount: U128,
+    ) -> U128 {
         let promise_success = is_promise_success();
         if !promise_success {
             log!("Lockup termination transfer has failed.");

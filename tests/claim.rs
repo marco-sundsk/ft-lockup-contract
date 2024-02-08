@@ -24,7 +24,7 @@ fn test_lockup_claim_logic() {
         ]),
         vesting_schedule: None,
     };
-    let balance: WrappedBalance = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
+    let balance: U128 = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
     assert_eq!(balance.0, amount);
     let lockups = e.get_account_lockups(&users.alice);
     assert_eq!(lockups.len(), 1);
@@ -33,7 +33,7 @@ fn test_lockup_claim_logic() {
     assert_eq!(lockups[0].1.unclaimed_balance, 0);
 
     // Claim attempt before unlock.
-    let res: WrappedBalance = e.claim(&users.alice).unwrap_json();
+    let res: U128 = e.claim(&users.alice).unwrap_json();
     assert_eq!(res.0, 0);
     let lockups = e.get_account_lockups(&users.alice);
     assert_eq!(lockups[0].1.claimed_balance, 0);
@@ -51,7 +51,7 @@ fn test_lockup_claim_logic() {
     assert_eq!(lockups[0].1.unclaimed_balance, amount);
 
     // Attempt to claim. No storage deposit for Alice.
-    let res: WrappedBalance = e.claim(&users.alice).unwrap_json();
+    let res: U128 = e.claim(&users.alice).unwrap_json();
     assert_eq!(res.0, 0);
     let lockups = e.get_account_lockups(&users.alice);
     assert_eq!(lockups[0].1.claimed_balance, 0);
@@ -63,7 +63,7 @@ fn test_lockup_claim_logic() {
     assert_eq!(balance, 0);
 
     // Claim tokens.
-    let res: WrappedBalance = e.claim(&users.alice).unwrap_json();
+    let res: U128 = e.claim(&users.alice).unwrap_json();
     assert_eq!(res.0, amount);
     // User's lockups should be empty, since fully claimed.
     let lockups = e.get_account_lockups(&users.alice);
@@ -100,7 +100,7 @@ fn test_lockup_linear() {
         ]),
         vesting_schedule: None,
     };
-    let balance: WrappedBalance = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
+    let balance: U128 = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
     assert_eq!(balance.0, amount);
     let lockups = e.get_account_lockups(&users.alice);
     assert_eq!(lockups.len(), 1);
@@ -117,7 +117,7 @@ fn test_lockup_linear() {
 
     // Claim tokens
     ft_storage_deposit(&users.alice, TOKEN_ID, &users.alice.account_id);
-    let res: WrappedBalance = e.claim(&users.alice).unwrap_json();
+    let res: U128 = e.claim(&users.alice).unwrap_json();
     assert_eq!(res.0, amount / 3);
     let balance = e.ft_balance_of(&users.alice);
     assert_eq!(balance, amount / 3);
@@ -142,7 +142,7 @@ fn test_lockup_linear() {
     assert_eq!(balance, 0);
 
     // Trying to claim, should fail and refund the amount back to the lockup
-    let res: WrappedBalance = e.claim(&users.alice).unwrap_json();
+    let res: U128 = e.claim(&users.alice).unwrap_json();
     assert_eq!(res.0, 0);
     let lockups = e.get_account_lockups(&users.alice);
     assert_eq!(lockups[0].1.total_balance, amount);
@@ -151,7 +151,7 @@ fn test_lockup_linear() {
 
     // Claim again but with storage deposit
     ft_storage_deposit(&users.alice, TOKEN_ID, &users.alice.account_id);
-    let res: WrappedBalance = e.claim(&users.alice).unwrap_json();
+    let res: U128 = e.claim(&users.alice).unwrap_json();
     assert_eq!(res.0, amount / 6);
     let balance = e.ft_balance_of(&users.alice);
     assert_eq!(balance, amount / 6);
@@ -167,7 +167,7 @@ fn test_lockup_linear() {
     assert_eq!(lockups[0].1.unclaimed_balance, amount / 6);
 
     // Claim tokens
-    let res: WrappedBalance = e.claim(&users.alice).unwrap_json();
+    let res: U128 = e.claim(&users.alice).unwrap_json();
     assert_eq!(res.0, amount / 6);
     let balance = e.ft_balance_of(&users.alice);
     assert_eq!(balance, amount / 3);
@@ -176,7 +176,7 @@ fn test_lockup_linear() {
     assert_eq!(lockups[0].1.unclaimed_balance, 0);
 
     // Claim again with no unclaimed_balance
-    let res: WrappedBalance = e.claim(&users.alice).unwrap_json();
+    let res: U128 = e.claim(&users.alice).unwrap_json();
     assert_eq!(res.0, 0);
     let balance = e.ft_balance_of(&users.alice);
     assert_eq!(balance, amount / 3);
@@ -191,7 +191,7 @@ fn test_lockup_linear() {
     assert_eq!(lockups[0].1.unclaimed_balance, amount / 3);
 
     // Final claim
-    let res: WrappedBalance = e.claim(&users.alice).unwrap_json();
+    let res: U128 = e.claim(&users.alice).unwrap_json();
     assert_eq!(res.0, amount / 3);
     let balance = e.ft_balance_of(&users.alice);
     assert_eq!(balance, amount * 2 / 3);
@@ -240,7 +240,7 @@ fn test_lockup_cliff_amazon() {
         ]),
         vesting_schedule: None,
     };
-    let balance: WrappedBalance = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
+    let balance: U128 = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
     assert_eq!(balance.0, amount);
     let lockups = e.get_account_lockups(&users.alice);
     assert_eq!(lockups.len(), 1);
@@ -303,7 +303,7 @@ fn test_lockup_cliff_amazon() {
     assert_eq!(lockups[0].1.unclaimed_balance, amount);
 
     // attempt to claim without storage.
-    let res: WrappedBalance = e.claim(&users.alice).unwrap_json();
+    let res: U128 = e.claim(&users.alice).unwrap_json();
     assert_eq!(res.0, 0);
     let balance = e.ft_balance_of(&users.alice);
     assert_eq!(balance, 0);
@@ -312,7 +312,7 @@ fn test_lockup_cliff_amazon() {
 
     // Claim tokens
     ft_storage_deposit(&users.alice, TOKEN_ID, &users.alice.account_id);
-    let res: WrappedBalance = e.claim(&users.alice).unwrap_json();
+    let res: U128 = e.claim(&users.alice).unwrap_json();
     assert_eq!(res.0, amount);
     let balance = e.ft_balance_of(&users.alice);
     assert_eq!(balance, amount);
@@ -349,11 +349,11 @@ fn test_claim_specific_lockups_with_specific_amounts_success() {
         vesting_schedule: None,
     };
 
-    let balance: WrappedBalance = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
+    let balance: U128 = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
     assert_eq!(balance.0, amount);
-    let balance: WrappedBalance = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
+    let balance: U128 = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
     assert_eq!(balance.0, amount);
-    let balance: WrappedBalance = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
+    let balance: U128 = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
     assert_eq!(balance.0, amount);
 
     // Set time to half unlock
@@ -370,7 +370,7 @@ fn test_claim_specific_lockups_with_specific_amounts_success() {
     ft_storage_deposit(&users.alice, TOKEN_ID, &users.alice.account_id);
 
     // CLAIM
-    let res: WrappedBalance = e
+    let res: U128 = e
         .claim_specific_lockups(
             &users.alice,
             &vec![(2, None), (1, Some((amount / 3).into()))],
@@ -415,9 +415,9 @@ fn test_claim_specific_lockups_with_specific_amounts_fail() {
         vesting_schedule: None,
     };
 
-    let balance: WrappedBalance = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
+    let balance: U128 = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
     assert_eq!(balance.0, amount);
-    let balance: WrappedBalance = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
+    let balance: U128 = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
     assert_eq!(balance.0, amount);
 
     ft_storage_deposit(&users.alice, TOKEN_ID, &users.alice.account_id);
@@ -482,7 +482,7 @@ fn test_claim_specific_lockups_overflow() {
         vesting_schedule: None,
     };
 
-    let balance: WrappedBalance = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
+    let balance: U128 = e.add_lockup(&e.owner, amount, &lockup_create).unwrap_json();
     assert_eq!(balance.0, amount);
 
     // Set time to half unlock

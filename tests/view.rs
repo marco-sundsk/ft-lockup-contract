@@ -61,7 +61,7 @@ fn test_get_lockups() {
 
     // create some lockups
     for user in vec![&users.alice, &users.bob, &users.charlie] {
-        let balance: WrappedBalance = e
+        let balance: U128 = e
             .add_lockup(
                 &e.owner,
                 amount,

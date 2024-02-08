@@ -1,11 +1,11 @@
 use std::convert::TryInto;
 
-use near_contract_standards::fungible_token::core_impl::ext_fungible_token;
 use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
-use near_sdk::borsh::maybestd::collections::{HashMap, HashSet};
+// use near_sdk::borsh::maybestd::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet, Vector};
-use near_sdk::json_types::{Base58CryptoHash, ValidAccountId, WrappedBalance, U128};
+use near_sdk::json_types::{Base58CryptoHash, U128};
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
     assert_one_yocto, env, ext_contract, is_promise_success, log, near_bindgen, serde_json,
@@ -31,7 +31,7 @@ use crate::schedule::*;
 use crate::termination::*;
 use crate::util::*;
 
-near_sdk::setup_alloc!();
+
 
 pub type TimestampSec = u32;
 pub type TokenAccountId = AccountId;
@@ -39,10 +39,10 @@ pub type TokenAccountId = AccountId;
 pub const PACKAGE_NAME: &str = env!("CARGO_PKG_NAME");
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-const GAS_FOR_FT_TRANSFER: Gas = 15_000_000_000_000;
-const GAS_FOR_AFTER_FT_TRANSFER: Gas = 20_000_000_000_000;
-const GAS_EXT_CALL_COST: Gas = 10_000_000_000_000;
-const GAS_MIN_FOR_CONVERT: Gas = 15_000_000_000_000;
+const GAS_FOR_FT_TRANSFER: Gas = Gas(15 * Gas::ONE_TERA.0); // 15_000_000_000_000;
+const GAS_FOR_AFTER_FT_TRANSFER: Gas = Gas(20 * Gas::ONE_TERA.0);
+const GAS_EXT_CALL_COST: Gas = Gas(10 * Gas::ONE_TERA.0); // 10_000_000_000_000;
+const GAS_MIN_FOR_CONVERT: Gas = Gas(15 * Gas::ONE_TERA.0); // 15_000_000_000_000;
 
 const ONE_YOCTO: Balance = 1;
 const NO_DEPOSIT: Balance = 0;
@@ -51,20 +51,35 @@ uint::construct_uint! {
     pub struct U256(4);
 }
 
+#[ext_contract(ext_fungible_token)]
+pub trait FungibleToken {
+    fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>);
+    fn ft_transfer_call(
+        &mut self,
+        receiver_id: AccountId,
+        amount: U128,
+        memo: Option<String>,
+        msg: String,
+    ) -> PromiseOrValue<U128>;
+}
+
 #[ext_contract(ext_self)]
 pub trait SelfCallbacks {
+    #[private]
     fn after_ft_transfer(
         &mut self,
         account_id: AccountId,
         lockup_claims: Vec<LockupClaim>,
-    ) -> WrappedBalance;
+    ) -> U128;
 
+    #[private]
     fn after_lockup_termination(
         &mut self,
         account_id: AccountId,
-        amount: WrappedBalance,
-    ) -> WrappedBalance;
+        amount: U128,
+    ) -> U128;
 
+    #[private]
     fn convert_drafts(&mut self, draft_ids: Vec<DraftIndex>) -> Vec<LockupIndex>;
 }
 
@@ -107,9 +122,9 @@ pub(crate) enum StorageKey {
 impl Contract {
     #[init]
     pub fn new(
-        token_account_id: ValidAccountId,
-        deposit_whitelist: Vec<ValidAccountId>,
-        draft_operators_whitelist: Option<Vec<ValidAccountId>>,
+        token_account_id: AccountId,
+        deposit_whitelist: Vec<AccountId>,
+        draft_operators_whitelist: Option<Vec<AccountId>>,
     ) -> Self {
         let mut deposit_whitelist_set = UnorderedSet::new(StorageKey::DepositWhitelist);
         deposit_whitelist_set.extend(deposit_whitelist.clone().into_iter().map(|a| a.into()));
@@ -154,8 +169,8 @@ impl Contract {
 
     pub fn claim(
         &mut self,
-        amounts: Option<Vec<(LockupIndex, Option<WrappedBalance>)>>,
-    ) -> PromiseOrValue<WrappedBalance> {
+        amounts: Option<Vec<(LockupIndex, Option<U128>)>>,
+    ) -> PromiseOrValue<U128> {
         let account_id = env::predecessor_account_id();
 
         let (claim_amounts, mut lockups_by_id) = if let Some(amounts) = amounts {
@@ -166,7 +181,7 @@ impl Contract {
                 )
                 .into_iter()
                 .collect();
-            let amounts: HashMap<LockupIndex, WrappedBalance> = amounts
+            let amounts: HashMap<LockupIndex, U128> = amounts
                 .into_iter()
                 .map(|(lockup_id, amount)| {
                     (
@@ -190,12 +205,12 @@ impl Contract {
                 .internal_get_account_lockups(&account_id)
                 .into_iter()
                 .collect();
-            let amounts: HashMap<LockupIndex, WrappedBalance> = lockups_by_id
+            let amounts: HashMap<LockupIndex, U128> = lockups_by_id
                 .iter()
                 .map(|(lockup_id, lockup)| {
                     let unlocked_balance =
                         lockup.schedule.unlocked_balance(current_timestamp_sec());
-                    let amount: WrappedBalance = (unlocked_balance - lockup.claimed_balance).into();
+                    let amount: U128 = (unlocked_balance - lockup.claimed_balance).into();
 
                     (lockup_id.clone(), amount)
                 })
@@ -224,7 +239,10 @@ impl Contract {
         log!("Total claim {}", total_claim_amount);
 
         if total_claim_amount > 0 {
-            ext_fungible_token::ft_transfer(
+            ext_fungible_token::ext(self.token_account_id.clone())
+            .with_attached_deposit(ONE_YOCTO)
+            .with_static_gas(GAS_FOR_FT_TRANSFER)
+            .ft_transfer(
                 account_id.clone(),
                 total_claim_amount.into(),
                 Some(format!(
@@ -232,17 +250,14 @@ impl Contract {
                     total_claim_amount,
                     env::current_account_id()
                 )),
-                &self.token_account_id,
-                ONE_YOCTO,
-                GAS_FOR_FT_TRANSFER,
             )
-            .then(ext_self::after_ft_transfer(
-                account_id,
-                lockup_claims,
-                &env::current_account_id(),
-                NO_DEPOSIT,
-                GAS_FOR_AFTER_FT_TRANSFER,
-            ))
+            .then(
+                Self::ext(env::current_account_id())
+                    .with_static_gas(GAS_FOR_AFTER_FT_TRANSFER)
+                    .after_ft_transfer(
+                    account_id,
+                    lockup_claims,
+                ))
             .into()
         } else {
             PromiseOrValue::Value(0.into())
@@ -255,7 +270,7 @@ impl Contract {
         lockup_index: LockupIndex,
         hashed_schedule: Option<Schedule>,
         termination_timestamp: Option<TimestampSec>,
-    ) -> PromiseOrValue<WrappedBalance> {
+    ) -> PromiseOrValue<U128> {
         assert_one_yocto();
         self.assert_deposit_whitelist(&env::predecessor_account_id());
         let mut lockup = self
@@ -291,21 +306,21 @@ impl Contract {
         emit(EventKind::FtLockupTerminateLockup(vec![event]));
 
         if unvested_balance > 0 {
-            ext_fungible_token::ft_transfer(
+            ext_fungible_token::ext(self.token_account_id.clone())
+            .with_attached_deposit(ONE_YOCTO)
+            .with_static_gas(GAS_FOR_FT_TRANSFER)
+            .ft_transfer(
                 beneficiary_id.clone(),
                 unvested_balance.into(),
                 Some(format!("Terminated lockup #{}", lockup_index)),
-                &self.token_account_id,
-                ONE_YOCTO,
-                GAS_FOR_FT_TRANSFER,
             )
-            .then(ext_self::after_lockup_termination(
-                beneficiary_id,
-                unvested_balance.into(),
-                &env::current_account_id(),
-                NO_DEPOSIT,
-                GAS_FOR_AFTER_FT_TRANSFER,
-            ))
+            .then(
+                Self::ext(env::current_account_id())
+                    .with_static_gas(GAS_FOR_AFTER_FT_TRANSFER)
+                    .after_lockup_termination(
+                    beneficiary_id,
+                    unvested_balance.into(),
+                ))
             .into()
         } else {
             PromiseOrValue::Value(0.into())
@@ -316,8 +331,8 @@ impl Contract {
     #[payable]
     pub fn add_to_deposit_whitelist(
         &mut self,
-        account_id: Option<ValidAccountId>,
-        account_ids: Option<Vec<ValidAccountId>>,
+        account_id: Option<AccountId>,
+        account_ids: Option<Vec<AccountId>>,
     ) {
         assert_one_yocto();
         self.assert_deposit_whitelist(&env::predecessor_account_id());
@@ -327,7 +342,7 @@ impl Contract {
             vec![account_id.expect("expected either account_id or account_ids")]
         };
         for account_id in &account_ids {
-            self.deposit_whitelist.insert(account_id.as_ref());
+            self.deposit_whitelist.insert(&account_id);
         }
         emit(EventKind::FtLockupAddToDepositWhitelist(
             FtLockupAddToDepositWhitelist {
@@ -340,8 +355,8 @@ impl Contract {
     #[payable]
     pub fn remove_from_deposit_whitelist(
         &mut self,
-        account_id: Option<ValidAccountId>,
-        account_ids: Option<Vec<ValidAccountId>>,
+        account_id: Option<AccountId>,
+        account_ids: Option<Vec<AccountId>>,
     ) {
         assert_one_yocto();
         self.assert_deposit_whitelist(&env::predecessor_account_id());
@@ -351,7 +366,7 @@ impl Contract {
             vec![account_id.expect("expected either account_id or account_ids")]
         };
         for account_id in &account_ids {
-            self.deposit_whitelist.remove(&account_id.to_string());
+            self.deposit_whitelist.remove(&account_id);
         }
         assert!(
             !self.deposit_whitelist.is_empty(),
@@ -365,11 +380,11 @@ impl Contract {
     }
 
     #[payable]
-    pub fn add_to_draft_operators_whitelist(&mut self, account_ids: Vec<ValidAccountId>) {
+    pub fn add_to_draft_operators_whitelist(&mut self, account_ids: Vec<AccountId>) {
         assert_one_yocto();
         self.assert_deposit_whitelist(&env::predecessor_account_id());
         for account_id in &account_ids {
-            self.draft_operators_whitelist.insert(account_id.as_ref());
+            self.draft_operators_whitelist.insert(&account_id);
         }
         emit(EventKind::FtLockupAddToDraftOperatorsWhitelist(
             FtLockupAddToDraftOperatorsWhitelist {
@@ -379,11 +394,11 @@ impl Contract {
     }
 
     #[payable]
-    pub fn remove_from_draft_operators_whitelist(&mut self, account_ids: Vec<ValidAccountId>) {
+    pub fn remove_from_draft_operators_whitelist(&mut self, account_ids: Vec<AccountId>) {
         assert_one_yocto();
         self.assert_deposit_whitelist(&env::predecessor_account_id());
         for account_id in &account_ids {
-            self.draft_operators_whitelist.remove(account_id.as_ref());
+            self.draft_operators_whitelist.remove(&account_id);
         }
         emit(EventKind::FtLockupRemoveFromDraftOperatorsWhitelist(
             FtLockupRemoveFromDraftOperatorsWhitelist {

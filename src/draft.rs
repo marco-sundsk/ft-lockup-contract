@@ -28,7 +28,7 @@ impl Draft {
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct DraftGroup {
     pub total_amount: Balance,
-    pub payer_id: Option<ValidAccountId>,
+    pub payer_id: Option<AccountId>,
     pub draft_indices: HashSet<DraftIndex>,
     pub discarded: bool,
 }
@@ -73,7 +73,7 @@ impl DraftGroup {
         assert!(self.payer_id.is_none(), "draft group already funded");
     }
 
-    pub fn fund(&mut self, payer_id: &ValidAccountId) {
+    pub fn fund(&mut self, payer_id: &AccountId) {
         self.assert_can_fund();
         self.payer_id = Some(payer_id.clone());
     }

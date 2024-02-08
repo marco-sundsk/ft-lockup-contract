@@ -5,7 +5,7 @@ use std::convert::TryInto;
 #[serde(crate = "near_sdk::serde")]
 #[cfg_attr(not(target_arch = "wasm32"), derive(Debug, PartialEq, Deserialize))]
 pub struct LockupView {
-    pub account_id: ValidAccountId,
+    pub account_id: AccountId,
     pub schedule: Schedule,
 
     #[serde(default)]
@@ -50,7 +50,7 @@ impl From<Lockup> for LockupView {
 #[serde(crate = "near_sdk::serde")]
 #[cfg_attr(not(target_arch = "wasm32"), derive(Debug, PartialEq, Deserialize))]
 pub struct LockupCreateView {
-    pub account_id: ValidAccountId,
+    pub account_id: AccountId,
     pub schedule: Schedule,
     pub vesting_schedule: Option<VestingConditions>,
 
@@ -92,7 +92,7 @@ impl From<LockupCreate> for LockupCreateView {
 pub struct DraftGroupView {
     #[serde(with = "u128_dec_format")]
     pub total_amount: Balance,
-    pub payer_id: Option<ValidAccountId>,
+    pub payer_id: Option<AccountId>,
     pub draft_indices: Vec<DraftIndex>,
     pub discarded: bool,
     pub funded: bool,
@@ -129,15 +129,15 @@ impl From<Draft> for DraftView {
 
 #[near_bindgen]
 impl Contract {
-    pub fn get_token_account_id(&self) -> ValidAccountId {
+    pub fn get_token_account_id(&self) -> AccountId {
         self.token_account_id.clone().try_into().unwrap()
     }
 
     pub fn get_account_lockups(
         &self,
-        account_id: ValidAccountId,
+        account_id: AccountId,
     ) -> Vec<(LockupIndex, LockupView)> {
-        self.internal_get_account_lockups(account_id.as_ref())
+        self.internal_get_account_lockups(&account_id)
             .into_iter()
             .map(|(lockup_index, lockup)| (lockup_index, lockup.into()))
             .collect()
@@ -185,7 +185,7 @@ impl Contract {
     pub fn validate_schedule(
         &self,
         schedule: Schedule,
-        total_balance: WrappedBalance,
+        total_balance: U128,
         termination_schedule: Option<Schedule>,
     ) {
         schedule.assert_valid(total_balance.0);

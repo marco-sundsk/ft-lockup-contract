@@ -37,7 +37,7 @@ pub struct FtLockupRemoveFromDraftOperatorsWhitelist {
 pub struct FtLockupCreateLockup {
     pub id: LockupIndex,
     pub account_id: AccountId,
-    pub balance: WrappedBalance,
+    pub balance: U128,
     pub start: TimestampSec,
     pub finish: TimestampSec,
     pub terminatable: bool,
@@ -49,7 +49,7 @@ impl From<(LockupIndex, Lockup, Option<DraftIndex>)> for FtLockupCreateLockup {
         let (id, lockup, draft_id) = tuple;
         Self {
             id,
-            account_id: lockup.account_id.to_string(),
+            account_id: lockup.account_id,
             balance: lockup.schedule.total_balance().into(),
             start: lockup.schedule.0.first().unwrap().timestamp,
             finish: lockup.schedule.0.last().unwrap().timestamp,
@@ -63,7 +63,7 @@ impl From<(LockupIndex, Lockup, Option<DraftIndex>)> for FtLockupCreateLockup {
 #[serde(crate = "near_sdk::serde")]
 pub struct FtLockupClaimLockup {
     pub id: LockupIndex,
-    pub amount: WrappedBalance,
+    pub amount: U128,
 }
 
 #[derive(Serialize, Debug)]
@@ -71,7 +71,7 @@ pub struct FtLockupClaimLockup {
 pub struct FtLockupTerminateLockup {
     pub id: LockupIndex,
     pub termination_timestamp: TimestampSec,
-    pub unvested_balance: WrappedBalance,
+    pub unvested_balance: U128,
 }
 
 #[derive(Serialize, Debug)]
@@ -86,7 +86,7 @@ pub struct FtLockupCreateDraft {
     pub id: DraftIndex,
     pub draft_group_id: DraftGroupIndex,
     pub account_id: AccountId,
-    pub balance: WrappedBalance,
+    pub balance: U128,
     pub start: TimestampSec,
     pub finish: TimestampSec,
     pub terminatable: bool,
@@ -98,7 +98,7 @@ impl From<(DraftIndex, Draft)> for FtLockupCreateDraft {
         Self {
             id,
             draft_group_id: draft.draft_group_id,
-            account_id: draft.lockup_create.account_id.to_string(),
+            account_id: draft.lockup_create.account_id,
             balance: draft.lockup_create.schedule.total_balance().into(),
             start: draft.lockup_create.schedule.0.first().unwrap().timestamp,
             finish: draft.lockup_create.schedule.0.last().unwrap().timestamp,
@@ -111,7 +111,7 @@ impl From<(DraftIndex, Draft)> for FtLockupCreateDraft {
 #[serde(crate = "near_sdk::serde")]
 pub struct FtLockupFundDraftGroup {
     pub id: DraftGroupIndex,
-    pub amount: WrappedBalance,
+    pub amount: U128,
 }
 
 #[derive(Serialize, Debug)]
@@ -325,7 +325,7 @@ mod tests {
         testing_env!(get_context());
 
         let account_id: AccountId = "alice.near".into();
-        let balance: WrappedBalance = 10_000.into();
+        let balance: U128 = 10_000.into();
         let timestamp: TimestampSec = 1_500_000_000;
         let lockup = Lockup::new_unlocked_since(account_id.clone(), balance.0, timestamp);
         let lockup_id: LockupIndex = 100;
@@ -364,7 +364,7 @@ mod tests {
         testing_env!(get_context());
 
         let lockup_id: LockupIndex = 100;
-        let amount: WrappedBalance = 10000.into();
+        let amount: U128 = 10000.into();
 
         let event = FtLockupClaimLockup {
             id: lockup_id,
@@ -398,7 +398,7 @@ mod tests {
 
         let lockup_id: LockupIndex = 100;
         let termination_timestamp: TimestampSec = 1_800_000_000;
-        let unvested_balance: WrappedBalance = 10000.into();
+        let unvested_balance: U128 = 10000.into();
 
         let event = FtLockupTerminateLockup {
             id: lockup_id,
@@ -460,8 +460,8 @@ mod tests {
     fn test_ft_lockup_create_draft() {
         testing_env!(get_context());
 
-        let account_id: ValidAccountId = "alice.near".try_into().unwrap();
-        let balance: WrappedBalance = 10_000.into();
+        let account_id: AccountId = "alice.near".try_into().unwrap();
+        let balance: U128 = 10_000.into();
         let timestamp: TimestampSec = 1_500_000_000;
         let lockup_create = LockupCreate {
             account_id: account_id.clone(),
@@ -508,7 +508,7 @@ mod tests {
         testing_env!(get_context());
 
         let draft_group_id: DraftGroupIndex = 22;
-        let amount: WrappedBalance = 10000.into();
+        let amount: U128 = 10000.into();
 
         let event = FtLockupFundDraftGroup {
             id: draft_group_id,
