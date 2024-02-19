@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::*;
 
 #[derive(Serialize, Deserialize)]
@@ -84,4 +86,26 @@ impl FungibleTokenReceiver for Contract {
 
         PromiseOrValue::Value(0.into())
     }
+}
+
+#[test]
+fn do_serial_and_unserial() {
+    let lockup_create = LockupCreate {
+        account_id: AccountId::from_str("alice.near").unwrap(),
+        schedule: Schedule(vec![
+            Checkpoint {
+                timestamp: 1000,
+                balance: 0,
+            },
+            Checkpoint {
+                timestamp: 2000,
+                balance: 500,
+            },
+        ]),
+        vesting_schedule: None,
+    };
+    println!(
+        "{}",
+        near_sdk::serde_json::to_string(&lockup_create).unwrap()
+    );
 }

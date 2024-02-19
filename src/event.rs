@@ -186,6 +186,8 @@ pub(crate) fn emit(event_kind: EventKind) {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
     use near_sdk::serde_json::json;
     use near_sdk::test_utils::VMContextBuilder;
@@ -199,7 +201,7 @@ mod tests {
     fn test_ft_lockup_init() {
         testing_env!(get_context());
 
-        let token_account_id = "token.near".into();
+        let token_account_id = AccountId::from_str("token.near").unwrap();
         emit(EventKind::FtLockupNew(FtLockupNew { token_account_id }));
         assert_eq!(
             test_utils::get_logs()[0],
@@ -222,7 +224,7 @@ mod tests {
 
         let account_ids: Vec<AccountId> = vec!["alice.near", "bob.near"]
             .iter()
-            .map(|&x| x.into())
+            .map(|&x| AccountId::from_str(x).unwrap())
             .collect();
         emit(EventKind::FtLockupAddToDepositWhitelist(
             FtLockupAddToDepositWhitelist { account_ids },
@@ -248,7 +250,7 @@ mod tests {
 
         let account_ids: Vec<AccountId> = vec!["alice.near", "bob.near"]
             .iter()
-            .map(|&x| x.into())
+            .map(|&x| AccountId::from_str(x).unwrap())
             .collect();
         emit(EventKind::FtLockupRemoveFromDepositWhitelist(
             FtLockupRemoveFromDepositWhitelist { account_ids },
@@ -274,7 +276,7 @@ mod tests {
 
         let account_ids: Vec<AccountId> = vec!["alice.near", "bob.near"]
             .iter()
-            .map(|&x| x.into())
+            .map(|&x| AccountId::from_str(x).unwrap())
             .collect();
         emit(EventKind::FtLockupAddToDraftOperatorsWhitelist(
             FtLockupAddToDraftOperatorsWhitelist { account_ids },
@@ -300,7 +302,7 @@ mod tests {
 
         let account_ids: Vec<AccountId> = vec!["alice.near", "bob.near"]
             .iter()
-            .map(|&x| x.into())
+            .map(|&x| AccountId::from_str(x).unwrap())
             .collect();
         emit(EventKind::FtLockupRemoveFromDraftOperatorsWhitelist(
             FtLockupRemoveFromDraftOperatorsWhitelist { account_ids },
@@ -324,7 +326,7 @@ mod tests {
     fn test_ft_lockup_create_lockup() {
         testing_env!(get_context());
 
-        let account_id: AccountId = "alice.near".into();
+        let account_id: AccountId = AccountId::from_str("alice.near").unwrap();
         let balance: U128 = 10_000.into();
         let timestamp: TimestampSec = 1_500_000_000;
         let lockup = Lockup::new_unlocked_since(account_id.clone(), balance.0, timestamp);
@@ -460,7 +462,7 @@ mod tests {
     fn test_ft_lockup_create_draft() {
         testing_env!(get_context());
 
-        let account_id: AccountId = "alice.near".try_into().unwrap();
+        let account_id: AccountId = AccountId::from_str("alice.near").unwrap();
         let balance: U128 = 10_000.into();
         let timestamp: TimestampSec = 1_500_000_000;
         let lockup_create = LockupCreate {
